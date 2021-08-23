@@ -102,13 +102,49 @@ public class BackgroundLocationUpdateService extends Service implements GoogleAp
                 try {
                     if (!stopService) {
                         //Perform your task here
+                        mLocationCallback = new LocationCallback() {
+                            @Override
+                            public void onLocationResult(LocationResult locationResult) {
+                                super.onLocationResult(locationResult);
+                                Log.e(TAG_LOCATION, "Location Received");
+                                mCurrentLocation = locationResult.getLastLocation();
+                                onLocationChanged(mCurrentLocation);
+                            }
+                        };
+                        Retrofit retrofit = new Retrofit.Builder()
+                                .baseUrl("http://3.38.11.108:8080")
+                                .addConverterFactory(GsonConverterFactory.create())
+                                .build();
+
+                        RetrofitApi retrofitApi = retrofit.create(RetrofitApi.class);
+                        HashMap<String, Object> input = new HashMap<>();
+                        input.put("latitude", mCurrentLocation.getLatitude());
+                        input.put("longitude", mCurrentLocation.getLongitude());
+                        input.put("name", mCurrentLocation.getProvider());
+                        Log.d("Test", String.valueOf(input));
+
+                        retrofitApi.postData(input).enqueue(new Callback<com.example.test.Location>() {
+                            @Override
+                            public void onResponse(Call<com.example.test.Location> call, Response<com.example.test.Location> response) {
+                                if (response.isSuccessful()) {
+                                    com.example.test.Location data = response.body();
+                                    Log.d("Test", "Post 성공");
+                                    Log.d("Test", String.valueOf(data.getStatus()));
+                                }
+                            }
+
+                            @Override
+                            public void onFailure(Call<com.example.test.Location> call, Throwable t) {
+
+                            }
+                        });
                     }
 
                 } catch (Exception e) {
                     e.printStackTrace();
                 } finally {
                     if (!stopService) {
-                        handler.postDelayed(this, TimeUnit.SECONDS.toMillis(10));
+                        handler.postDelayed(this, TimeUnit.SECONDS.toMillis(15));
                     }
                 }
             }
@@ -122,13 +158,13 @@ public class BackgroundLocationUpdateService extends Service implements GoogleAp
 
     @Override
     public void onDestroy() {
-        Log.e(TAG, "Service Stopped");
-        stopService = true;
-        if (mFusedLocationClient != null) {
-            mFusedLocationClient.removeLocationUpdates(mLocationCallback);
-            Log.e(TAG_LOCATION, "Location Update Callback Removed");
-        }
-        super.onDestroy();
+//        Log.e(TAG, "Service Stopped");
+//        stopService = true;
+//        if (mFusedLocationClient != null) {
+//            mFusedLocationClient.removeLocationUpdates(mLocationCallback);
+//            Log.e(TAG_LOCATION, "Location Update Callback Removed");
+//        }
+//        super.onDestroy();
     }
 
     @Nullable
@@ -152,32 +188,6 @@ public class BackgroundLocationUpdateService extends Service implements GoogleAp
         if (latitude.equalsIgnoreCase("0.0") && longitude.equalsIgnoreCase("0.0")) {
             requestLocationUpdate();
         } else {
-            Retrofit retrofit = new Retrofit.Builder()
-                    .baseUrl("http://3.38.11.108:8080")
-                    .addConverterFactory(GsonConverterFactory.create())
-                    .build();
-
-            RetrofitApi retrofitApi = retrofit.create(RetrofitApi.class);
-            HashMap<String, Object> input = new HashMap<>();
-            input.put("latitude", location.getLatitude());
-            input.put("longitude", location.getLongitude());
-            input.put("name", location.getProvider());
-
-            retrofitApi.postData(input).enqueue(new Callback<com.example.test.Location>() {
-                @Override
-                public void onResponse(Call<com.example.test.Location> call, Response<com.example.test.Location> response) {
-                    if (response.isSuccessful()) {
-                        com.example.test.Location data = response.body();
-                        Log.d("Test", "Post 성공");
-                        Log.d("Test", String.valueOf(data.getStatus()));
-                    }
-                }
-
-                @Override
-                public void onFailure(Call<com.example.test.Location> call, Throwable t) {
-
-                }
-            });
             Log.e(TAG_LOCATION, "Latitude : " + location.getLatitude() + "\tLongitude : " + location.getLongitude() + "\tProvider : " + location.getProvider());
         }
     }
@@ -200,8 +210,7 @@ public class BackgroundLocationUpdateService extends Service implements GoogleAp
     @Override
     public void onConnected(@Nullable Bundle bundle) {
         mLocationRequest = new LocationRequest();
-        mLocationRequest.setInterval(10 * 1000);
-        mLocationRequest.setFastestInterval(5 * 1000);
+        mLocationRequest.setInterval(15 * 1000);
         mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
 
         LocationSettingsRequest.Builder builder = new LocationSettingsRequest.Builder();

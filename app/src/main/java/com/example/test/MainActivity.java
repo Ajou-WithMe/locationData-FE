@@ -58,7 +58,6 @@ public class MainActivity extends AppCompatActivity implements MapView.CurrentLo
         super.onDestroy();
         mMapView.setCurrentLocationTrackingMode(MapView.CurrentLocationTrackingMode.TrackingModeOff);
         mMapView.setShowCurrentLocationMarker(false);
-        startService(new Intent(this, BackgroundLocationUpdateService.class));
     }
 
     @Override
